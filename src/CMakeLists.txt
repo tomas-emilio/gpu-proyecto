@@ -1,6 +1,6 @@
-# ==================================
+# ======================================
 # Archivos fuente
-# ==================================
+# ======================================
 set(CORE_SOURCES
     core/mesh.cpp
     core/physics.cpp
@@ -17,32 +17,38 @@ set(CUDA_SOURCES
 )
 
 set(OPENGL_SOURCES
+    opengl/renderer.cpp
     opengl/shader_simulation.cpp
     opengl/utils.cpp
 )
 
-# ==================================
+set(APPLICATION_SRC
+    application.cpp
+)
+
+# ======================================
 # Ejecutable
-# ==================================
+# ======================================
 add_executable(simulacion
     ${CORE_SOURCES}
     ${CPU_SOURCES}
     ${CUDA_SOURCES}
     ${OPENGL_SOURCES}
+    ${APPLICATION_SRC}
     main.cpp
 )
 
-# ==================================
-# Configuración CUDA
-# ==================================
+# ======================================
+# Propiedades CUDA
+# ======================================
 set_target_properties(simulacion PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES "native"
 )
 
-# ==================================
+# ======================================
 # Includes
-# ==================================
+# ======================================
 target_include_directories(simulacion PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/include/core
@@ -51,9 +57,9 @@ target_include_directories(simulacion PRIVATE
     ${PROJECT_SOURCE_DIR}/include/opengl
 )
 
-# ==================================
+# ======================================
 # Linkeo OpenGL, GLEW y GLFW
-# ==================================
+# ======================================
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)

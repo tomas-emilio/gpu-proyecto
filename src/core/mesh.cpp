@@ -64,6 +64,9 @@ void Mesh::setOldVertex(int x, int y, const glm::vec3& pos) {
 std::vector<unsigned int>& Mesh::getIndices() {
     return indices;
 }
+const std::vector<unsigned int>& Mesh::getIndices() const {
+    return indices;
+}
 
 void Mesh::applyForce(int x, int y, const glm::vec3& force) {
     if (x >= 0 && x < width && y >= 0 && y < height) {

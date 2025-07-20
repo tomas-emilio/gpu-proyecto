@@ -21,6 +21,7 @@ public:
     void setOldVertex(int x, int y, const glm::vec3& pos);
     
     std::vector<unsigned int>& getIndices();
+    const std::vector<unsigned int>& getIndices() const;
     
     void applyForce(int x, int y, const glm::vec3& force);
     
