@@ -152,39 +152,72 @@ void ShaderSimulation::update(float deltaTime) {
     auto startTime = std::chrono::high_resolution_clock::now();
     
     glUseProgram(computeProgram);
+    OpenGLUtils::checkGLError("Use program");
     
-    // Set uniforms
-    glUniform1i(glGetUniformLocation(computeProgram, "numSprings"), numSprings);
-    glUniform1i(glGetUniformLocation(computeProgram, "meshWidth"), width);
-    glUniform1i(glGetUniformLocation(computeProgram, "meshHeight"), height);
-    glUniform1f(glGetUniformLocation(computeProgram, "deltaTime"), deltaTime);
-    glUniform1f(glGetUniformLocation(computeProgram, "mass"), 1.0f);
+    // Verificar que el programa es válido
+    GLint linked;
+    glGetProgramiv(computeProgram, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        std::cerr << "Compute shader program not linked!" << std::endl;
+        return;
+    }
     
-    // Calculate work groups
-    GLuint groupsX = (width + 15) / 16;  // 16 is local_size_x
-    GLuint groupsY = (height + 15) / 16; // 16 is local_size_y
+    // Set uniforms con verificación
+    GLint loc;
+    loc = glGetUniformLocation(computeProgram, "numSprings");
+    if (loc >= 0) glUniform1i(loc, numSprings);
+    
+    loc = glGetUniformLocation(computeProgram, "meshWidth");
+    if (loc >= 0) glUniform1i(loc, width);
+    
+    loc = glGetUniformLocation(computeProgram, "meshHeight");
+    if (loc >= 0) glUniform1i(loc, height);
+    
+    loc = glGetUniformLocation(computeProgram, "deltaTime");
+    if (loc >= 0) glUniform1f(loc, deltaTime);
+    
+    loc = glGetUniformLocation(computeProgram, "mass");
+    if (loc >= 0) glUniform1f(loc, 1.0f);
+    
+    OpenGLUtils::checkGLError("Set uniforms");
+    
+    // Verificar límites de work groups
+    GLint maxWorkGroupSize[3];
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &maxWorkGroupSize[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &maxWorkGroupSize[1]);
+    
+    GLuint groupsX = (width + 15) / 16;
+    GLuint groupsY = (height + 15) / 16;
+    
+    // Verificar límites
+    if (groupsX > maxWorkGroupSize[0] || groupsY > maxWorkGroupSize[1]) {
+        std::cerr << "Work group size too large!" << std::endl;
+        return;
+    }
     
     // Phase 0: Clear forces
-    glUniform1i(glGetUniformLocation(computeProgram, "phase"), 0);
+    loc = glGetUniformLocation(computeProgram, "phase");
+    if (loc >= 0) glUniform1i(loc, 0);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    OpenGLUtils::checkGLError("Phase 0");
     
     // Phase 1: Calculate forces
-    glUniform1i(glGetUniformLocation(computeProgram, "phase"), 1);
+    if (loc >= 0) glUniform1i(loc, 1);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    OpenGLUtils::checkGLError("Phase 1");
     
     // Phase 2: Integrate
-    glUniform1i(glGetUniformLocation(computeProgram, "phase"), 2);
+    if (loc >= 0) glUniform1i(loc, 2);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    OpenGLUtils::checkGLError("Phase 2");
     
-    glFinish(); // Wait for GPU to complete
+    glFinish();
     
     auto endTime = std::chrono::high_resolution_clock::now();
     lastFrameTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-    
-    OpenGLUtils::checkGLError("Compute shader dispatch");
 }
 
 void ShaderSimulation::handleMouseInteraction(float x, float y, float force) {
