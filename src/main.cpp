@@ -35,20 +35,6 @@ void printInteractiveControls() {
     std::cout << std::endl;
 }
 
-void printTissueInfo() {
-    std::cout << "=== TISSUE PHYSICS MODEL ===" << std::endl;
-    std::cout << "Based on: Yuan et al. (2010) - Improved Mass-Spring Model" << std::endl;
-    std::cout << std::endl;
-    std::cout << "Spring Types:" << std::endl;
-    std::cout << "  • Structural - Horizontal/vertical connections (primary elasticity)" << std::endl;
-    std::cout << "  • Shear      - Diagonal connections (cutting resistance)" << std::endl;
-    std::cout << "  • Virtual    - Volume simulation (internal force compensation)" << std::endl;
-    std::cout << std::endl;
-    std::cout << "Integration: Verlet method (position-based, stable)" << std::endl;
-    std::cout << "Visualization: Real-time wireframe mesh" << std::endl;
-    std::cout << std::endl;
-}
-
 int main(int argc, char* argv[]) {
     std::cout << "==========================================================" << std::endl;
     std::cout << "    Interactive Tissue Deformation Simulation" << std::endl;
@@ -80,7 +66,6 @@ int main(int argc, char* argv[]) {
     
     if (argc == 1 || (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help"))) {
         printUsage(argv[0]);
-        printTissueInfo();
         printInteractiveControls();
         return 0;
     }
@@ -102,8 +87,6 @@ int main(int argc, char* argv[]) {
     std::cout << "  Spring Count: ~" << totalSprings << " springs" << std::endl;
     std::cout << std::endl;
     
-    // Mostrar información del modelo físico
-    printTissueInfo();
     
     // Crear y ejecutar aplicación
     std::cout << "Initializing simulation..." << std::endl;
@@ -124,7 +107,7 @@ int main(int argc, char* argv[]) {
     app.run();
     
     std::cout << std::endl;
-    std::cout << "Simulation ended. Thank you!" << std::endl;
+    std::cout << "Simulation ended" << std::endl;
     
     return 0;
 }
