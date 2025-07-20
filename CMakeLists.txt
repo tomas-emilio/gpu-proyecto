@@ -1,12 +1,12 @@
-cmake_minimum_required(VERSION 3.10)
-project(SimulacionTejido)
+cmake_minimum_required(VERSION 3.18)
+project(SimulacionTejido LANGUAGES CXX CUDA)
 
-# Habilita C++17
+# Estándares
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Incluye carpeta include/
+# Archivos de headers
 include_directories(${PROJECT_SOURCE_DIR}/include)
 
-# Agrega subdirectorio con código fuente
+# Agrega subdirectorio con los fuentes
 add_subdirectory(src)
