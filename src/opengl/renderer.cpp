@@ -21,13 +21,7 @@ void OpenGLRenderer::initialize(int width, int height) {
         return;
     }
     
-    // Configurar cámara
-    view = glm::lookAt(
-        glm::vec3(2.0f, 2.0f, 3.0f),  // posición
-        glm::vec3(2.0f, 2.0f, 0.0f),  // hacia donde mira
-        glm::vec3(0.0f, 0.0f, 1.0f)   // up vector
-    );
-    
+    // Configurar proyección
     projection = glm::perspective(
         glm::radians(45.0f), 
         (float)width / (float)height, 
@@ -36,6 +30,7 @@ void OpenGLRenderer::initialize(int width, int height) {
     
     // Configurar OpenGL
     glEnable(GL_DEPTH_TEST);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // Wireframe para ver la malla
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     
     std::cout << "Renderer initialized" << std::endl;
@@ -77,10 +72,22 @@ void OpenGLRenderer::updateMeshData(const Mesh& mesh) {
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertices.size() * sizeof(glm::vec3), vertices.data());
 }
 
+
 void OpenGLRenderer::render(const Mesh& mesh) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glUseProgram(shaderProgram);
+    
+    // Calcular posición central de la malla dinámicamente
+    float meshCenterX = (mesh.getWidth() - 1) * mesh.getSpacing() * 0.5f;
+    float meshCenterY = (mesh.getHeight() - 1) * mesh.getSpacing() * 0.5f;
+    float meshSize = std::max(meshCenterX, meshCenterY) * 2.5f;
+    
+    // Configurar cámara centrada en la malla
+    glm::vec3 center(meshCenterX, meshCenterY, 0.0f);
+    glm::vec3 cameraPos = center + glm::vec3(0.0f, 0.0f, meshSize);
+    
+    view = glm::lookAt(cameraPos, center, glm::vec3(0.0f, 1.0f, 0.0f));
     
     // Calcular MVP matrix
     glm::mat4 model = glm::mat4(1.0f);
