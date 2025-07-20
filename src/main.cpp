@@ -2,12 +2,16 @@
 #include <thread>
 #include <chrono>
 #include <vector>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
 #include "cpu/cpu_simulation.h"
 #include "cuda/cuda_simulation.h"
+#include "opengl/shader_simulation.h"
 
 enum SimulationMode {
     CPU_MODE,
     CUDA_MODE,
+    SHADER_MODE,
     COMPARISON_MODE
 };
 
@@ -22,7 +26,7 @@ void printMeshState(const Mesh& mesh, int frame, const std::string& mode) {
 
 void runSimulation(SimulationMode mode, int meshWidth, int meshHeight, int numFrames) {
     float deltaTime = 0.016f; // ~60 FPS
-    
+
     if (mode == CPU_MODE || mode == COMPARISON_MODE) {
         std::cout << "\n=== CPU Simulation ===" << std::endl;
         
@@ -104,6 +108,76 @@ void runSimulation(SimulationMode mode, int meshWidth, int meshHeight, int numFr
         std::cout << "Total frames: " << frameCount << std::endl;
         std::cout << "Average frame time: " << (cudaTotalTime / frameCount) << " ms" << std::endl;
         std::cout << "Average FPS: " << (1000.0 / (cudaTotalTime / frameCount)) << std::endl;
+        
+        if (mode == CUDA_MODE) return;
+    }
+
+    // === AGREGA ESTE BLOQUE PARA SHADER_MODE ===
+    if (mode == SHADER_MODE) {
+        // Inicializar GLFW
+        if (!glfwInit()) {
+            std::cerr << "Failed to initialize GLFW" << std::endl;
+            return;
+        }
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        GLFWwindow* window = glfwCreateWindow(640, 480, "Hidden", nullptr, nullptr);
+        if (!window) {
+            std::cerr << "Failed to create GLFW window" << std::endl;
+            glfwTerminate();
+            return;
+        }
+        glfwMakeContextCurrent(window);
+
+        glewExperimental = GL_TRUE;
+        if (glewInit() != GLEW_OK) {
+            std::cerr << "Failed to initialize GLEW" << std::endl;
+            glfwDestroyWindow(window);
+            glfwTerminate();
+            return;
+        }
+
+        std::cout << "\n=== Shader Simulation ===" << std::endl;
+
+        ShaderSimulation shaderSim;
+        shaderSim.initialize(meshWidth, meshHeight);
+
+        double shaderTotalTime = 0.0;
+        int frameCount = 0;
+
+        for (int frame = 0; frame < numFrames; ++frame) {
+            // Simular interacción del usuario cada 100 frames
+            if (frame % 100 == 50) {
+                shaderSim.handleMouseInteraction(1.0f, 1.0f, -0.5f);
+                std::cout << "[SHADER] Applied user force at frame " << frame << std::endl;
+            }
+
+            // Actualizar simulación
+            shaderSim.update(deltaTime);
+
+            // Recopilar métricas
+            double frameTime = shaderSim.getLastFrameTime();
+            shaderTotalTime += frameTime;
+            frameCount++;
+
+            // Mostrar estado cada 100 frames
+            if (frame % 100 == 0) {
+                Mesh tempMesh;
+                tempMesh.initialize(meshWidth, meshHeight, 0.1f);
+                shaderSim.getMesh(tempMesh);
+                printMeshState(tempMesh, frame, "SHADER");
+                std::cout << "[SHADER] Frame time: " << frameTime << " ms" << std::endl;
+            }
+        }
+
+        // Mostrar estadísticas SHADER
+        std::cout << "\n=== Shader Performance Statistics ===" << std::endl;
+        std::cout << "Total frames: " << frameCount << std::endl;
+        std::cout << "Average frame time: " << (shaderTotalTime / frameCount) << " ms" << std::endl;
+        std::cout << "Average FPS: " << (1000.0 / (shaderTotalTime / frameCount)) << std::endl;
+
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        return;
     }
 }
 
@@ -124,6 +198,8 @@ int main(int argc, char* argv[]) {
             mode = CPU_MODE;
         } else if (arg == "cuda") {
             mode = CUDA_MODE;
+        } else if (arg == "shader") {
+            mode = SHADER_MODE;
         } else if (arg == "compare") {
             mode = COMPARISON_MODE;
         }
@@ -152,12 +228,15 @@ int main(int argc, char* argv[]) {
         case CUDA_MODE:
             std::cout << "CUDA only" << std::endl;
             break;
+        case SHADER_MODE:
+            std::cout << "Compute Shader only" << std::endl;
+            break;
         case COMPARISON_MODE:
-            std::cout << "CPU vs CUDA comparison" << std::endl;
+            std::cout << "CPU vs CUDA vs Shader comparison" << std::endl;
             break;
     }
     
-    std::cout << "\nUsage: " << argv[0] << " [cpu|cuda|compare] [mesh_size] [num_frames]" << std::endl;
+    std::cout << "\nUsage: " << argv[0] << " [cpu|cuda|shader|compare] [mesh_size] [num_frames]" << std::endl;
     std::cout << "Running simulation...\n" << std::endl;
     
     runSimulation(mode, meshWidth, meshHeight, numFrames);
