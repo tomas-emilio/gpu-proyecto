@@ -1,5 +1,6 @@
 #pragma once
 #include "../core/mesh.h"
+#include "../core/tissue_params.h"
 #include <cuda_runtime.h>
 #include <chrono>
 
@@ -46,4 +47,6 @@ public:
     
     double getLastFrameTime() const;
     void cleanup();
+    void reset();
+    void updateParams(const TissueParams& params);
 };

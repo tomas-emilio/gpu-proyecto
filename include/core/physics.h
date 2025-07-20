@@ -2,6 +2,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include "mesh.h"
+#include "tissue_params.h"
 
 enum SpringType {
     STRUCTURAL,
@@ -32,4 +33,5 @@ public:
     void applyConstraints(Mesh& mesh);
     
     void setDamping(float d) { damping = d; }
+    void updateParams(const TissueParams& params);
 };
