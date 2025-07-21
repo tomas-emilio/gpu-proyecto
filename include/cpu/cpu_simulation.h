@@ -2,6 +2,7 @@
 #include "../core/mesh.h"
 #include "../core/physics.h"
 #include "../core/verlet.h"
+#include "../core/tissue_params.h"
 #include <chrono>
 
 class CPUSimulation {
@@ -20,4 +21,6 @@ public:
     
     const Mesh& getMesh() const;
     double getLastFrameTime() const;
+    void reset();
+    void updateParams(const TissueParams& params);
 };

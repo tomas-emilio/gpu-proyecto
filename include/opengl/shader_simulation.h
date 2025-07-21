@@ -3,6 +3,7 @@
 #include <GL/glew.h>
 #include <chrono>
 #include <vector>
+#include "../core/tissue_params.h"
 
 struct ShaderSpring {
     int vertex1, vertex2;
@@ -51,4 +52,6 @@ public:
     
     double getLastFrameTime() const;
     void cleanup();
+    void reset();
+    void updateParams(const TissueParams& params);
 };

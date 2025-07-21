@@ -44,6 +44,9 @@ private:
     void handleMouseInput(double xpos, double ypos);
     void updatePerformanceMetrics();
     void printPerformanceStats();
+    void resetTissue();
+    void updateTissueParams();
+    void printControls();
     
 public:
     Application();

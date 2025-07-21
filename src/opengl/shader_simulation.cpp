@@ -42,9 +42,12 @@ void ShaderSimulation::initialize(int meshWidth, int meshHeight) {
               << " (" << numVertices << " vertices, " << numSprings << " springs)" << std::endl;
 }
 
+// Modificar generateSprings en shader_simulation.cpp
 void ShaderSimulation::generateSprings() {
     hostSprings.clear();
     hostSpringData.clear();
+    
+    extern TissueParams g_tissueParams;
     
     // Resortes estructurales
     for (int y = 0; y < height; ++y) {
@@ -55,14 +58,14 @@ void ShaderSimulation::generateSprings() {
             if (x < width - 1) {
                 int rightVertex = y * width + (x + 1);
                 hostSprings.push_back({currentVertex, rightVertex, 0, 0}); // STRUCTURAL
-                hostSpringData.push_back({spacing, 50.0f, 0.0f, 0.0f});
+                hostSpringData.push_back({spacing, g_tissueParams.structuralStiffness, 0.0f, 0.0f});
             }
             
             // Vertical
             if (y < height - 1) {
                 int bottomVertex = (y + 1) * width + x;
                 hostSprings.push_back({currentVertex, bottomVertex, 0, 0}); // STRUCTURAL
-                hostSpringData.push_back({spacing, 50.0f, 0.0f, 0.0f});
+                hostSpringData.push_back({spacing, g_tissueParams.structuralStiffness, 0.0f, 0.0f});
             }
         }
     }
@@ -75,12 +78,12 @@ void ShaderSimulation::generateSprings() {
             float diagLength = spacing * sqrtf(2.0f);
             
             hostSprings.push_back({currentVertex, diagVertex, 1, 0}); // SHEAR
-            hostSpringData.push_back({diagLength, 25.0f, 0.0f, 0.0f});
+            hostSpringData.push_back({diagLength, g_tissueParams.shearStiffness, 0.0f, 0.0f});
             
             int rightVertex = y * width + (x + 1);
             int bottomLeftVertex = (y + 1) * width + x;
             hostSprings.push_back({rightVertex, bottomLeftVertex, 1, 0}); // SHEAR
-            hostSpringData.push_back({diagLength, 25.0f, 0.0f, 0.0f});
+            hostSpringData.push_back({diagLength, g_tissueParams.shearStiffness, 0.0f, 0.0f});
         }
     }
     
@@ -92,13 +95,13 @@ void ShaderSimulation::generateSprings() {
             if (x < width - 2) {
                 int farRightVertex = y * width + (x + 2);
                 hostSprings.push_back({currentVertex, farRightVertex, 2, 0}); // VIRTUAL
-                hostSpringData.push_back({spacing * 2.0f, 15.0f, 0.0f, 0.0f});
+                hostSpringData.push_back({spacing * 2.0f, g_tissueParams.virtualStiffness, 0.0f, 0.0f});
             }
             
             if (y < height - 2) {
                 int farBottomVertex = (y + 2) * width + x;
                 hostSprings.push_back({currentVertex, farBottomVertex, 2, 0}); // VIRTUAL
-                hostSpringData.push_back({spacing * 2.0f, 15.0f, 0.0f, 0.0f});
+                hostSpringData.push_back({spacing * 2.0f, g_tissueParams.virtualStiffness, 0.0f, 0.0f});
             }
         }
     }
@@ -149,39 +152,72 @@ void ShaderSimulation::update(float deltaTime) {
     auto startTime = std::chrono::high_resolution_clock::now();
     
     glUseProgram(computeProgram);
+    OpenGLUtils::checkGLError("Use program");
     
-    // Set uniforms
-    glUniform1i(glGetUniformLocation(computeProgram, "numSprings"), numSprings);
-    glUniform1i(glGetUniformLocation(computeProgram, "meshWidth"), width);
-    glUniform1i(glGetUniformLocation(computeProgram, "meshHeight"), height);
-    glUniform1f(glGetUniformLocation(computeProgram, "deltaTime"), deltaTime);
-    glUniform1f(glGetUniformLocation(computeProgram, "mass"), 1.0f);
+    // Verificar que el programa es válido
+    GLint linked;
+    glGetProgramiv(computeProgram, GL_LINK_STATUS, &linked);
+    if (!linked) {
+        std::cerr << "Compute shader program not linked!" << std::endl;
+        return;
+    }
     
-    // Calculate work groups
-    GLuint groupsX = (width + 15) / 16;  // 16 is local_size_x
-    GLuint groupsY = (height + 15) / 16; // 16 is local_size_y
+    // Set uniforms con verificación
+    GLint loc;
+    loc = glGetUniformLocation(computeProgram, "numSprings");
+    if (loc >= 0) glUniform1i(loc, numSprings);
+    
+    loc = glGetUniformLocation(computeProgram, "meshWidth");
+    if (loc >= 0) glUniform1i(loc, width);
+    
+    loc = glGetUniformLocation(computeProgram, "meshHeight");
+    if (loc >= 0) glUniform1i(loc, height);
+    
+    loc = glGetUniformLocation(computeProgram, "deltaTime");
+    if (loc >= 0) glUniform1f(loc, deltaTime);
+    
+    loc = glGetUniformLocation(computeProgram, "mass");
+    if (loc >= 0) glUniform1f(loc, 1.0f);
+    
+    OpenGLUtils::checkGLError("Set uniforms");
+    
+    // Verificar límites de work groups
+    GLint maxWorkGroupSize[3];
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &maxWorkGroupSize[0]);
+    glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &maxWorkGroupSize[1]);
+    
+    GLuint groupsX = (width + 15) / 16;
+    GLuint groupsY = (height + 15) / 16;
+    
+    // Verificar límites
+    if (groupsX > maxWorkGroupSize[0] || groupsY > maxWorkGroupSize[1]) {
+        std::cerr << "Work group size too large!" << std::endl;
+        return;
+    }
     
     // Phase 0: Clear forces
-    glUniform1i(glGetUniformLocation(computeProgram, "phase"), 0);
+    loc = glGetUniformLocation(computeProgram, "phase");
+    if (loc >= 0) glUniform1i(loc, 0);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    OpenGLUtils::checkGLError("Phase 0");
     
     // Phase 1: Calculate forces
-    glUniform1i(glGetUniformLocation(computeProgram, "phase"), 1);
+    if (loc >= 0) glUniform1i(loc, 1);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    OpenGLUtils::checkGLError("Phase 1");
     
     // Phase 2: Integrate
-    glUniform1i(glGetUniformLocation(computeProgram, "phase"), 2);
+    if (loc >= 0) glUniform1i(loc, 2);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    OpenGLUtils::checkGLError("Phase 2");
     
-    glFinish(); // Wait for GPU to complete
+    glFinish();
     
     auto endTime = std::chrono::high_resolution_clock::now();
     lastFrameTime = std::chrono::duration<double, std::milli>(endTime - startTime).count();
-    
-    OpenGLUtils::checkGLError("Compute shader dispatch");
 }
 
 void ShaderSimulation::handleMouseInteraction(float x, float y, float force) {
@@ -246,4 +282,30 @@ void ShaderSimulation::cleanup() {
         glDeleteProgram(computeProgram);
         computeProgram = 0;
     }
+}
+
+void ShaderSimulation::reset() {
+    // Reinicializar posiciones
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int idx = y * width + x;
+            hostPositions[idx] = glm::vec4(x * spacing, y * spacing, 0.0f, 1.0f);
+        }
+    }
+    
+    // Actualizar buffers
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, positionSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, numVertices * sizeof(glm::vec4), hostPositions.data());
+    
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, oldPositionSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, numVertices * sizeof(glm::vec4), hostPositions.data());
+}
+
+void ShaderSimulation::updateParams(const TissueParams& params) {
+    // Regenerar resortes con nuevos parámetros
+    generateSprings();
+    
+    // Actualizar buffer de datos de resortes
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, springDataSSBO);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, numSprings * sizeof(ShaderSpringData), hostSpringData.data());
 }

@@ -1,6 +1,9 @@
 #include "application.h"
 #include <iostream>
 #include <iomanip>
+#include "core/tissue_params.h"
+
+TissueParams g_tissueParams;
 
 Application::Application() 
     : window(nullptr), simType(SIM_CPU), mousePressed(false), 
@@ -239,13 +242,77 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     
     if (action == GLFW_PRESS) {
+        bool paramsChanged = false;
+        
         switch (key) {
             case GLFW_KEY_ESCAPE:
                 glfwSetWindowShouldClose(window, GLFW_TRUE);
                 break;
+                
             case GLFW_KEY_P:
                 app->printPerformanceStats();
                 break;
+                
+            // Structural stiffness (Q/A)
+            case GLFW_KEY_Q:
+                g_tissueParams.increaseStructural();
+                paramsChanged = true;
+                break;
+            case GLFW_KEY_A:
+                g_tissueParams.decreaseStructural();
+                paramsChanged = true;
+                break;
+                
+            // Shear stiffness (W/S)  
+            case GLFW_KEY_W:
+                g_tissueParams.increaseShear();
+                paramsChanged = true;
+                break;
+            case GLFW_KEY_S:
+                g_tissueParams.decreaseShear();
+                paramsChanged = true;
+                break;
+                
+            // Virtual stiffness (E/D)
+            case GLFW_KEY_E:
+                g_tissueParams.increaseVirtual();
+                paramsChanged = true;
+                break;
+            case GLFW_KEY_D:
+                g_tissueParams.decreaseVirtual();
+                paramsChanged = true;
+                break;
+                
+            // Damping (R/F)
+            case GLFW_KEY_R:
+                g_tissueParams.increaseDamping();
+                paramsChanged = true;
+                break;
+            case GLFW_KEY_F:
+                g_tissueParams.decreaseDamping();
+                paramsChanged = true;
+                break;
+                
+            // Reset tissue (SPACE)
+            case GLFW_KEY_SPACE:
+                app->resetTissue();
+                break;
+                
+            // Reset parameters (BACKSPACE)
+            case GLFW_KEY_BACKSPACE:
+                g_tissueParams.reset();
+                paramsChanged = true;
+                break;
+                
+            // Show help (H)
+            case GLFW_KEY_H:
+                app->printControls();
+                break;
+        }
+        
+        if (paramsChanged) {
+            g_tissueParams.print();
+            app->updateTissueParams();
         }
     }
 }
@@ -259,4 +326,47 @@ void Application::cleanup() {
     }
     
     glfwTerminate();
+}
+
+void Application::resetTissue() {
+    switch (simType) {
+        case SIM_CPU:
+            cpuSim->reset();
+            break;
+        case SIM_CUDA:
+            cudaSim->reset();
+            break;
+        case SIM_SHADER:
+            shaderSim->reset();
+            break;
+    }
+    std::cout << "Tissue reset!" << std::endl;
+}
+
+void Application::updateTissueParams() {
+    switch (simType) {
+        case SIM_CPU:
+            cpuSim->updateParams(g_tissueParams);
+            break;
+        case SIM_CUDA:
+            cudaSim->updateParams(g_tissueParams);
+            break;
+        case SIM_SHADER:
+            shaderSim->updateParams(g_tissueParams);
+            break;
+    }
+}
+
+void Application::printControls() {
+    std::cout << "\n=== CONTROLS ===" << std::endl;
+    std::cout << "Mouse: Left click + drag to apply force" << std::endl;
+    std::cout << "Q/A: Increase/Decrease structural stiffness" << std::endl;
+    std::cout << "W/S: Increase/Decrease shear stiffness" << std::endl;
+    std::cout << "E/D: Increase/Decrease virtual stiffness" << std::endl;
+    std::cout << "R/F: Increase/Decrease damping" << std::endl;
+    std::cout << "SPACE: Reset tissue positions" << std::endl;
+    std::cout << "BACKSPACE: Reset all parameters" << std::endl;
+    std::cout << "P: Print performance stats" << std::endl;
+    std::cout << "H: Show this help" << std::endl;
+    std::cout << "ESC: Exit" << std::endl;
 }

@@ -59,41 +59,40 @@ void CUDASimulation::initialize(int meshWidth, int meshHeight) {
 
 void CUDASimulation::generateSprings() {
     std::vector<CudaSpring> hostSprings;
+    extern TissueParams g_tissueParams;
     
     // Resortes estructurales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
             
-            // Horizontal
             if (x < width - 1) {
                 int rightVertex = y * width + (x + 1);
-                CudaSpring spring = {currentVertex, rightVertex, spacing, 50.0f, 0};
+                CudaSpring spring = {currentVertex, rightVertex, spacing, g_tissueParams.structuralStiffness, 0};
                 hostSprings.push_back(spring);
             }
             
-            // Vertical
             if (y < height - 1) {
                 int bottomVertex = (y + 1) * width + x;
-                CudaSpring spring = {currentVertex, bottomVertex, spacing, 50.0f, 0};
+                CudaSpring spring = {currentVertex, bottomVertex, spacing, g_tissueParams.structuralStiffness, 0};
                 hostSprings.push_back(spring);
             }
         }
     }
     
-    // Resortes de corte (diagonales)
+    // Resortes de corte
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < width - 1; ++x) {
             int currentVertex = y * width + x;
             int diagVertex = (y + 1) * width + (x + 1);
             float diagLength = spacing * sqrtf(2.0f);
             
-            CudaSpring spring1 = {currentVertex, diagVertex, diagLength, 25.0f, 1};
+            CudaSpring spring1 = {currentVertex, diagVertex, diagLength, g_tissueParams.shearStiffness, 1};
             hostSprings.push_back(spring1);
             
             int rightVertex = y * width + (x + 1);
             int bottomLeftVertex = (y + 1) * width + x;
-            CudaSpring spring2 = {rightVertex, bottomLeftVertex, diagLength, 25.0f, 1};
+            CudaSpring spring2 = {rightVertex, bottomLeftVertex, diagLength, g_tissueParams.shearStiffness, 1};
             hostSprings.push_back(spring2);
         }
     }
@@ -105,13 +104,13 @@ void CUDASimulation::generateSprings() {
             
             if (x < width - 2) {
                 int farRightVertex = y * width + (x + 2);
-                CudaSpring spring = {currentVertex, farRightVertex, spacing * 2.0f, 15.0f, 2};
+                CudaSpring spring = {currentVertex, farRightVertex, spacing * 2.0f, g_tissueParams.virtualStiffness, 2};
                 hostSprings.push_back(spring);
             }
             
             if (y < height - 2) {
                 int farBottomVertex = (y + 2) * width + x;
-                CudaSpring spring = {currentVertex, farBottomVertex, spacing * 2.0f, 15.0f, 2};
+                CudaSpring spring = {currentVertex, farBottomVertex, spacing * 2.0f, g_tissueParams.virtualStiffness, 2};
                 hostSprings.push_back(spring);
             }
         }
@@ -119,7 +118,12 @@ void CUDASimulation::generateSprings() {
     
     numSprings = hostSprings.size();
     
-    // Copiar resortes a GPU
+    // Liberar memoria anterior si existe
+    if (d_springs) {
+        cudaFree(d_springs);
+    }
+    
+    // Copiar nuevos resortes a GPU
     CUDA_CHECK(cudaMalloc(&d_springs, numSprings * sizeof(CudaSpring)));
     CUDA_CHECK(cudaMemcpy(d_springs, hostSprings.data(), 
                          numSprings * sizeof(CudaSpring), cudaMemcpyHostToDevice));
@@ -209,4 +213,25 @@ void CUDASimulation::cleanup() {
     cudaEventDestroy(startEvent);
     cudaEventDestroy(stopEvent);
     cudaStreamDestroy(stream);
+}
+
+void CUDASimulation::reset() {
+    // Reinicializar posiciones
+    std::vector<float3> hostPositions(numVertices);
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            int idx = y * width + x;
+            hostPositions[idx] = make_float3(x * spacing, y * spacing, 0.0f);
+        }
+    }
+    
+    CUDA_CHECK(cudaMemcpy(d_positions, hostPositions.data(), 
+                         numVertices * sizeof(float3), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_oldPositions, hostPositions.data(), 
+                         numVertices * sizeof(float3), cudaMemcpyHostToDevice));
+}
+
+void CUDASimulation::updateParams(const TissueParams& params) {
+    // Regenerar resortes con nuevos parámetros
+    generateSprings();
 }

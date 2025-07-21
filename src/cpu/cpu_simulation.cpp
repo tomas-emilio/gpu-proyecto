@@ -39,3 +39,14 @@ const Mesh& CPUSimulation::getMesh() const {
 double CPUSimulation::getLastFrameTime() const {
     return lastFrameTime;
 }
+
+void CPUSimulation::reset() {
+    mesh.initialize(mesh.getWidth(), mesh.getHeight(), mesh.getSpacing());
+    physics.generateSprings(mesh);
+    integrator.updatePreviousPositions(mesh);
+}
+
+void CPUSimulation::updateParams(const TissueParams& params) {
+    physics.updateParams(params);
+    integrator.setMass(params.mass);
+}

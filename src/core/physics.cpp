@@ -7,58 +7,59 @@ void PhysicsModel::generateSprings(const Mesh& mesh) {
     int height = mesh.getHeight();
     float spacing = mesh.getSpacing();
     
-    // Resortes estructurales (horizontal y vertical)
+    // Usar parámetros globales en lugar de valores hardcodeados
+    extern TissueParams g_tissueParams;
+    
+    // Resortes estructurales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
             
-            // Horizontal
             if (x < width - 1) {
                 int rightVertex = y * width + (x + 1);
-                Spring spring = {currentVertex, rightVertex, spacing, 50.0f, STRUCTURAL};
+                Spring spring = {currentVertex, rightVertex, spacing, g_tissueParams.structuralStiffness, STRUCTURAL};
                 springs.push_back(spring);
             }
             
-            // Vertical
             if (y < height - 1) {
                 int bottomVertex = (y + 1) * width + x;
-                Spring spring = {currentVertex, bottomVertex, spacing, 50.0f, STRUCTURAL};
+                Spring spring = {currentVertex, bottomVertex, spacing, g_tissueParams.structuralStiffness, STRUCTURAL};
                 springs.push_back(spring);
             }
         }
     }
     
-    // Resortes de corte (diagonales)
+    // Resortes de corte
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < width - 1; ++x) {
             int currentVertex = y * width + x;
             int diagVertex = (y + 1) * width + (x + 1);
             float diagLength = spacing * sqrt(2.0f);
             
-            Spring spring1 = {currentVertex, diagVertex, diagLength, 25.0f, SHEAR};
+            Spring spring1 = {currentVertex, diagVertex, diagLength, g_tissueParams.shearStiffness, SHEAR};
             springs.push_back(spring1);
             
             int rightVertex = y * width + (x + 1);
             int bottomLeftVertex = (y + 1) * width + x;
-            Spring spring2 = {rightVertex, bottomLeftVertex, diagLength, 25.0f, SHEAR};
+            Spring spring2 = {rightVertex, bottomLeftVertex, diagLength, g_tissueParams.shearStiffness, SHEAR};
             springs.push_back(spring2);
         }
     }
     
-    // Resortes virtuales (para simular volumen)
+    // Resortes virtuales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
             
             if (x < width - 2) {
                 int farRightVertex = y * width + (x + 2);
-                Spring spring = {currentVertex, farRightVertex, spacing * 2.0f, 15.0f, VIRTUAL};
+                Spring spring = {currentVertex, farRightVertex, spacing * 2.0f, g_tissueParams.virtualStiffness, VIRTUAL};
                 springs.push_back(spring);
             }
             
             if (y < height - 2) {
                 int farBottomVertex = (y + 2) * width + x;
-                Spring spring = {currentVertex, farBottomVertex, spacing * 2.0f, 15.0f, VIRTUAL};
+                Spring spring = {currentVertex, farBottomVertex, spacing * 2.0f, g_tissueParams.virtualStiffness, VIRTUAL};
                 springs.push_back(spring);
             }
         }
@@ -113,5 +114,24 @@ void PhysicsModel::applyConstraints(Mesh& mesh) {
         glm::vec3 bottomPos = mesh.getVertex(x, height - 1);
         bottomPos.z = 0.0f;
         mesh.setVertex(x, height - 1, bottomPos);
+    }
+}
+
+void PhysicsModel::updateParams(const TissueParams& params) {
+    damping = params.damping;
+    
+    // Actualizar rigidez de resortes existentes
+    for (auto& spring : springs) {
+        switch (spring.type) {
+            case STRUCTURAL:
+                spring.stiffness = params.structuralStiffness;
+                break;
+            case SHEAR:
+                spring.stiffness = params.shearStiffness;
+                break;
+            case VIRTUAL:
+                spring.stiffness = params.virtualStiffness;
+                break;
+        }
     }
 }

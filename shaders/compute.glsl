@@ -30,9 +30,12 @@ uniform float mass;
 uniform int phase; // 0: clear forces, 1: calculate forces, 2: integrate
 
 void main() {
-    uint index = gl_GlobalInvocationID.y * meshWidth + gl_GlobalInvocationID.x;
+    uint x = gl_GlobalInvocationID.x;
+    uint y = gl_GlobalInvocationID.y;
+    uint index = y * meshWidth + x;
     
-    if (gl_GlobalInvocationID.x >= meshWidth || gl_GlobalInvocationID.y >= meshHeight) {
+    // Verificar límites
+    if (x >= meshWidth || y >= meshHeight) {
         return;
     }
     
@@ -42,34 +45,48 @@ void main() {
     }
     else if (phase == 1) {
         // Calcular fuerzas de resortes
+        vec3 totalForce = vec3(0.0);
+        
         for (int i = 0; i < numSprings; ++i) {
             ivec4 spring = springs[i];
-            vec4 springProps = springData[i];
             
-            if (spring.x == int(index) || spring.y == int(index)) {
+            if (spring.x == int(index)) {
+                // Este vértice es el primer punto del resorte
                 vec3 pos1 = positions[spring.x].xyz;
                 vec3 pos2 = positions[spring.y].xyz;
                 
                 vec3 diff = pos2 - pos1;
                 float currentLength = length(diff);
                 
-                if (currentLength > 0.0) {
+                if (currentLength > 0.001) { // Evitar división por cero
+                    vec4 springProps = springData[i];
                     float displacement = currentLength - springProps.x; // restLength
                     vec3 direction = diff / currentLength;
                     vec3 springForce = direction * displacement * springProps.y; // stiffness
                     
-                    if (spring.x == int(index)) {
-                        atomicAdd(forces[index].x, springForce.x);
-                        atomicAdd(forces[index].y, springForce.y);
-                        atomicAdd(forces[index].z, springForce.z);
-                    } else {
-                        atomicAdd(forces[index].x, -springForce.x);
-                        atomicAdd(forces[index].y, -springForce.y);
-                        atomicAdd(forces[index].z, -springForce.z);
-                    }
+                    totalForce += springForce;
+                }
+            }
+            else if (spring.y == int(index)) {
+                // Este vértice es el segundo punto del resorte
+                vec3 pos1 = positions[spring.x].xyz;
+                vec3 pos2 = positions[spring.y].xyz;
+                
+                vec3 diff = pos2 - pos1;
+                float currentLength = length(diff);
+                
+                if (currentLength > 0.001) { // Evitar división por cero
+                    vec4 springProps = springData[i];
+                    float displacement = currentLength - springProps.x; // restLength
+                    vec3 direction = diff / currentLength;
+                    vec3 springForce = direction * displacement * springProps.y; // stiffness
+                    
+                    totalForce -= springForce;
                 }
             }
         }
+        
+        forces[index] = vec4(totalForce, 0.0);
     }
     else if (phase == 2) {
         // Integración de Verlet
@@ -89,8 +106,8 @@ void main() {
         oldPositions[index] = vec4(currentPos, 1.0);
         positions[index] = vec4(newPos, 1.0);
         
-        // Aplicar restricciones (fijar bordes)
-        if (gl_GlobalInvocationID.y == 0 || gl_GlobalInvocationID.y == meshHeight - 1) {
+        // Aplicar restricciones (fijar bordes superior e inferior)
+        if (y == 0 || y == (meshHeight - 1)) {
             positions[index].z = 0.0;
         }
     }

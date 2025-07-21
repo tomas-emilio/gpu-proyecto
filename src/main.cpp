@@ -9,14 +9,38 @@ void printUsage(const char* programName) {
     std::cout << "  shader - Run Compute Shader simulation" << std::endl;
     std::cout << "  mesh_size - Size of the mesh (default: 40)" << std::endl;
     std::cout << std::endl;
-    std::cout << "Interactive Controls:" << std::endl;
-    std::cout << "  Left click and drag - Apply force to tissue" << std::endl;
-    std::cout << "  P key - Print performance statistics" << std::endl;
-    std::cout << "  ESC key - Exit application" << std::endl;
+}
+
+void printInteractiveControls() {
+    std::cout << "=== INTERACTIVE CONTROLS ===" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Mouse Controls:" << std::endl;
+    std::cout << "  Left click + drag - Apply force to deform tissue" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Tissue Parameters (Real-time adjustment):" << std::endl;
+    std::cout << "  Q / A - Increase / Decrease structural stiffness" << std::endl;
+    std::cout << "  W / S - Increase / Decrease shear stiffness" << std::endl;
+    std::cout << "  E / D - Increase / Decrease virtual stiffness" << std::endl;
+    std::cout << "  R / F - Increase / Decrease damping factor" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Simulation Controls:" << std::endl;
+    std::cout << "  SPACE     - Reset tissue to initial state" << std::endl;
+    std::cout << "  BACKSPACE - Reset all parameters to defaults" << std::endl;
+    std::cout << "  P         - Print performance statistics" << std::endl;
+    std::cout << "  H         - Show help (this menu)" << std::endl;
+    std::cout << "  ESC       - Exit application" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Note: Parameter changes are applied immediately" << std::endl;
+    std::cout << "      and affect the physical behavior of the tissue." << std::endl;
+    std::cout << std::endl;
 }
 
 int main(int argc, char* argv[]) {
-    std::cout << "=== Interactive Tissue Deformation Simulation ===" << std::endl;
+    std::cout << "==========================================================" << std::endl;
+    std::cout << "    Interactive Tissue Deformation Simulation" << std::endl;
+    std::cout << "    GPU-Accelerated Biological Tissue Modeling" << std::endl;
+    std::cout << "==========================================================" << std::endl;
+    std::cout << std::endl;
     
     // Valores por defecto
     std::string simType = "cpu";
@@ -42,16 +66,30 @@ int main(int argc, char* argv[]) {
     
     if (argc == 1 || (argc == 2 && (std::string(argv[1]) == "-h" || std::string(argv[1]) == "--help"))) {
         printUsage(argv[0]);
+        printInteractiveControls();
         return 0;
     }
     
+    // Mostrar configuración
     std::cout << "Configuration:" << std::endl;
-    std::cout << "  Simulation type: " << simType << std::endl;
-    std::cout << "  Mesh size: " << meshSize << "x" << meshSize 
-              << " (" << (meshSize * meshSize) << " vertices)" << std::endl;
+    std::cout << "  Simulation Backend: " << simType;
+    if (simType == "cpu") std::cout << " (Sequential CPU processing)";
+    else if (simType == "cuda") std::cout << " (CUDA GPU parallel processing)";
+    else if (simType == "shader") std::cout << " (OpenGL Compute Shaders)";
     std::cout << std::endl;
     
+    std::cout << "  Mesh Resolution: " << meshSize << "x" << meshSize 
+              << " (" << (meshSize * meshSize) << " vertices)" << std::endl;
+    
+    int totalSprings = (meshSize * (meshSize-1)) * 2 + // structural
+                       (meshSize-1) * (meshSize-1) * 2 + // shear  
+                       meshSize * (meshSize-2) * 2; // virtual
+    std::cout << "  Spring Count: ~" << totalSprings << " springs" << std::endl;
+    std::cout << std::endl;
+    
+    
     // Crear y ejecutar aplicación
+    std::cout << "Initializing simulation..." << std::endl;
     Application app;
     
     if (!app.initialize(simType, meshSize)) {
@@ -59,7 +97,17 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
+    std::cout << std::endl;
+    printInteractiveControls();
+    
+    std::cout << "Starting interactive simulation..." << std::endl;
+    std::cout << "Press 'H' during simulation for help" << std::endl;
+    std::cout << "==========================================================" << std::endl;
+    
     app.run();
+    
+    std::cout << std::endl;
+    std::cout << "Simulation ended" << std::endl;
     
     return 0;
 }
