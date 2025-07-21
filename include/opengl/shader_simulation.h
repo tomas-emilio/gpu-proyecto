@@ -23,18 +23,18 @@ private:
     int width, height, numVertices;
     float spacing;
     
-    // OpenGL objects
+    //objetos oengl
     GLuint computeProgram;
     GLuint positionSSBO, oldPositionSSBO, forceSSBO;
     GLuint springSSBO, springDataSSBO;
     
-    // Host data
+    //host data
     std::vector<glm::vec4> hostPositions;
     std::vector<ShaderSpring> hostSprings;
     std::vector<ShaderSpringData> hostSpringData;
     int numSprings;
     
-    // Timing
+    //timing
     std::chrono::high_resolution_clock::time_point lastTime;
     double lastFrameTime;
     

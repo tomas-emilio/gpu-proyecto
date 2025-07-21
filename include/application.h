@@ -25,14 +25,14 @@ private:
     std::unique_ptr<CUDASimulation> cudaSim;
     std::unique_ptr<ShaderSimulation> shaderSim;
     
-    Mesh tempMesh; // Para obtener datos de GPU simulations
+    Mesh tempMesh; //para obtener datos de simulacion
     
     int windowWidth, windowHeight;
     int meshWidth, meshHeight;
     bool mousePressed;
     double lastMouseX, lastMouseY;
     
-    // Métricas de rendimiento
+    //metricas de rendimiento
     double frameTimeSum;
     int frameCount;
     double lastTime;

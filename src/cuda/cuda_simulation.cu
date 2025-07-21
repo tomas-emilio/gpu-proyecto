@@ -32,12 +32,12 @@ void CUDASimulation::initialize(int meshWidth, int meshHeight) {
     numVertices = width * height;
     spacing = 0.1f;
     
-    // Alocar memoria en GPU
+    //alocar memoria en GPU
     CUDA_CHECK(cudaMalloc(&d_positions, numVertices * sizeof(float3)));
     CUDA_CHECK(cudaMalloc(&d_oldPositions, numVertices * sizeof(float3)));
     CUDA_CHECK(cudaMalloc(&d_forces, numVertices * sizeof(float3)));
     
-    // Inicializar posiciones en host y copiar a device
+    //inicializar posiciones en host y copiar a device
     std::vector<float3> hostPositions(numVertices);
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
@@ -61,7 +61,7 @@ void CUDASimulation::generateSprings() {
     std::vector<CudaSpring> hostSprings;
     extern TissueParams g_tissueParams;
     
-    // Resortes estructurales
+    //resortes estructurales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
@@ -80,7 +80,7 @@ void CUDASimulation::generateSprings() {
         }
     }
     
-    // Resortes de corte
+    //resortes de corte
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < width - 1; ++x) {
             int currentVertex = y * width + x;
@@ -97,7 +97,7 @@ void CUDASimulation::generateSprings() {
         }
     }
     
-    // Resortes virtuales
+    //resortes virtuales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
@@ -118,12 +118,12 @@ void CUDASimulation::generateSprings() {
     
     numSprings = hostSprings.size();
     
-    // Liberar memoria anterior si existe
+    //liberar memoria anterior si existe
     if (d_springs) {
         cudaFree(d_springs);
     }
     
-    // Copiar nuevos resortes a GPU
+    //copiar nuevos resortes a GPU
     CUDA_CHECK(cudaMalloc(&d_springs, numSprings * sizeof(CudaSpring)));
     CUDA_CHECK(cudaMemcpy(d_springs, hostSprings.data(), 
                          numSprings * sizeof(CudaSpring), cudaMemcpyHostToDevice));
@@ -137,25 +137,25 @@ void CUDASimulation::update(float deltaTime) {
     const int gridSizeSprings = (numSprings + blockSize - 1) / blockSize;
     const int gridSizeConstraints = (numVertices + blockSize - 1) / blockSize;
     
-    // Limpiar fuerzas
+    //limpiar fuerzas
     clearForces<<<gridSizeVertices, blockSize, 0, stream>>>(d_forces, numVertices);
     
-    // Calcular fuerzas de resortes
+    //calcular fuerzas de resortes
     calculateForces<<<gridSizeSprings, blockSize, 0, stream>>>(
         d_positions, d_forces, d_springs, numSprings);
     
-    // Integración de Verlet
+    //integración de verlet
     verletIntegration<<<gridSizeVertices, blockSize, 0, stream>>>(
         d_positions, d_oldPositions, d_forces, deltaTime, numVertices, 1.0f);
     
-    // Aplicar restricciones
+    //aplicar restricciones
     applyConstraints<<<gridSizeConstraints, blockSize, 0, stream>>>(
         d_positions, width, height);
     
     CUDA_CHECK(cudaEventRecord(stopEvent, stream));
     CUDA_CHECK(cudaEventSynchronize(stopEvent));
     
-    // Calcular tiempo
+    //calcular tiempo
     float milliseconds = 0;
     CUDA_CHECK(cudaEventElapsedTime(&milliseconds, startEvent, stopEvent));
     lastFrameTime = milliseconds;
@@ -216,7 +216,7 @@ void CUDASimulation::cleanup() {
 }
 
 void CUDASimulation::reset() {
-    // Reinicializar posiciones
+    //reinicializar posiciones
     std::vector<float3> hostPositions(numVertices);
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
@@ -232,6 +232,6 @@ void CUDASimulation::reset() {
 }
 
 void CUDASimulation::updateParams(const TissueParams& params) {
-    // Regenerar resortes con nuevos parámetros
+    //regenerar resortes con nuevos parámetros
     generateSprings();
 }

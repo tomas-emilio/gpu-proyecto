@@ -8,27 +8,27 @@ struct CudaSpring {
     int vertex1, vertex2;
     float restLength;
     float stiffness;
-    int type; // 0=STRUCTURAL, 1=SHEAR, 2=VIRTUAL
+    int type; //0=estructural, 1=shear, 2=virtual
 };
 
 class CUDASimulation {
 private:
-    // Host data
+    //host data
     int width, height, numVertices;
     float spacing;
     
-    // Device pointers
+    //device pointers
     float3* d_positions;
     float3* d_oldPositions;
     float3* d_forces;
     CudaSpring* d_springs;
     int numSprings;
     
-    // Timing
+    //timing
     std::chrono::high_resolution_clock::time_point lastTime;
     double lastFrameTime;
     
-    // CUDA streams and events
+    //cuda streams y eventos
     cudaStream_t stream;
     cudaEvent_t startEvent, stopEvent;
     

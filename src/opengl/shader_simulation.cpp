@@ -18,14 +18,14 @@ void ShaderSimulation::initialize(int meshWidth, int meshHeight) {
     numVertices = width * height;
     spacing = 0.1f;
     
-    // Cargar compute shader
+    //cargar compute shader
     computeProgram = OpenGLUtils::createComputeShaderProgram("shaders/compute.glsl");
     if (computeProgram == 0) {
         std::cerr << "Failed to create compute shader program" << std::endl;
         return;
     }
     
-    // Inicializar posiciones
+    //inicializar posiciones
     hostPositions.clear();
     hostPositions.resize(numVertices);
     for (int y = 0; y < height; ++y) {
@@ -42,26 +42,26 @@ void ShaderSimulation::initialize(int meshWidth, int meshHeight) {
               << " (" << numVertices << " vertices, " << numSprings << " springs)" << std::endl;
 }
 
-// Modificar generateSprings en shader_simulation.cpp
+//modificar generateSprings en shader_simulation.cpp
 void ShaderSimulation::generateSprings() {
     hostSprings.clear();
     hostSpringData.clear();
     
     extern TissueParams g_tissueParams;
     
-    // Resortes estructurales
+    //resortes estructurales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
             
-            // Horizontal
+            //horizontal
             if (x < width - 1) {
                 int rightVertex = y * width + (x + 1);
                 hostSprings.push_back({currentVertex, rightVertex, 0, 0}); // STRUCTURAL
                 hostSpringData.push_back({spacing, g_tissueParams.structuralStiffness, 0.0f, 0.0f});
             }
             
-            // Vertical
+            //vertical
             if (y < height - 1) {
                 int bottomVertex = (y + 1) * width + x;
                 hostSprings.push_back({currentVertex, bottomVertex, 0, 0}); // STRUCTURAL
@@ -70,7 +70,7 @@ void ShaderSimulation::generateSprings() {
         }
     }
     
-    // Resortes de corte (diagonales)
+    //resortes de corte (diagonales)
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < width - 1; ++x) {
             int currentVertex = y * width + x;
@@ -87,7 +87,7 @@ void ShaderSimulation::generateSprings() {
         }
     }
     
-    // Resortes virtuales
+    //resortes virtuales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
@@ -110,35 +110,35 @@ void ShaderSimulation::generateSprings() {
 }
 
 void ShaderSimulation::initializeBuffers() {
-    // Position buffer
+    //position buffer
     glGenBuffers(1, &positionSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, positionSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), 
                  hostPositions.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, positionSSBO);
     
-    // Old position buffer
+    //old position buffer
     glGenBuffers(1, &oldPositionSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, oldPositionSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), 
                  hostPositions.data(), GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, oldPositionSSBO);
     
-    // Force buffer
+    //force buffer
     glGenBuffers(1, &forceSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, forceSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numVertices * sizeof(glm::vec4), 
                  nullptr, GL_DYNAMIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, forceSSBO);
     
-    // Spring buffer
+    //spring buffer
     glGenBuffers(1, &springSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, springSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numSprings * sizeof(ShaderSpring), 
                  hostSprings.data(), GL_STATIC_DRAW);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, springSSBO);
     
-    // Spring data buffer
+    //spring data buffer
     glGenBuffers(1, &springDataSSBO);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, springDataSSBO);
     glBufferData(GL_SHADER_STORAGE_BUFFER, numSprings * sizeof(ShaderSpringData), 
@@ -154,7 +154,7 @@ void ShaderSimulation::update(float deltaTime) {
     glUseProgram(computeProgram);
     OpenGLUtils::checkGLError("Use program");
     
-    // Verificar que el programa es válido
+    //verificar que el programa es válido
     GLint linked;
     glGetProgramiv(computeProgram, GL_LINK_STATUS, &linked);
     if (!linked) {
@@ -162,7 +162,7 @@ void ShaderSimulation::update(float deltaTime) {
         return;
     }
     
-    // Set uniforms con verificación
+    //set uniforms con verificación
     GLint loc;
     loc = glGetUniformLocation(computeProgram, "numSprings");
     if (loc >= 0) glUniform1i(loc, numSprings);
@@ -181,7 +181,7 @@ void ShaderSimulation::update(float deltaTime) {
     
     OpenGLUtils::checkGLError("Set uniforms");
     
-    // Verificar límites de work groups
+    //verificar lmites de work groups
     GLint maxWorkGroupSize[3];
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &maxWorkGroupSize[0]);
     glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &maxWorkGroupSize[1]);
@@ -189,26 +189,26 @@ void ShaderSimulation::update(float deltaTime) {
     GLuint groupsX = (width + 15) / 16;
     GLuint groupsY = (height + 15) / 16;
     
-    // Verificar límites
+    //verificar limites
     if (groupsX > maxWorkGroupSize[0] || groupsY > maxWorkGroupSize[1]) {
         std::cerr << "Work group size too large!" << std::endl;
         return;
     }
     
-    // Phase 0: Clear forces
+    //fase 0: Clear forces
     loc = glGetUniformLocation(computeProgram, "phase");
     if (loc >= 0) glUniform1i(loc, 0);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     OpenGLUtils::checkGLError("Phase 0");
     
-    // Phase 1: Calculate forces
+    //fase 1: Calcular fuerzas
     if (loc >= 0) glUniform1i(loc, 1);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     OpenGLUtils::checkGLError("Phase 1");
     
-    // Phase 2: Integrate
+    //fase 2: Integrate
     if (loc >= 0) glUniform1i(loc, 2);
     glDispatchCompute(groupsX, groupsY, 1);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -227,7 +227,7 @@ void ShaderSimulation::handleMouseInteraction(float x, float y, float force) {
     if (meshX >= 0 && meshX < width && meshY >= 0 && meshY < height) {
         int targetVertex = meshY * width + meshX;
         
-        // Read current position, modify, and write back
+        //read current position, modify, and write back
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, positionSSBO);
         glm::vec4* positions = (glm::vec4*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
         if (positions) {
@@ -285,7 +285,7 @@ void ShaderSimulation::cleanup() {
 }
 
 void ShaderSimulation::reset() {
-    // Reinicializar posiciones
+    //reinicializar posiciones
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int idx = y * width + x;
@@ -293,7 +293,7 @@ void ShaderSimulation::reset() {
         }
     }
     
-    // Actualizar buffers
+    //actualizar buffers
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, positionSSBO);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, numVertices * sizeof(glm::vec4), hostPositions.data());
     
@@ -302,10 +302,10 @@ void ShaderSimulation::reset() {
 }
 
 void ShaderSimulation::updateParams(const TissueParams& params) {
-    // Regenerar resortes con nuevos parámetros
+    //regenerar resortes con nuevos parámetros
     generateSprings();
     
-    // Actualizar buffer de datos de resortes
+    //actualizar buffer de datos de resortes
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, springDataSSBO);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, numSprings * sizeof(ShaderSpringData), hostSpringData.data());
 }

@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include "cuda_simulation.h"
 
-// Declaraciones de kernels
+//declaraciones de kernels
 __global__ void clearForces(float3* forces, int numVertices);
 
 __global__ void calculateForces(float3* positions, float3* forces, 

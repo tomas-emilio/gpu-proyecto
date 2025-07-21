@@ -19,7 +19,7 @@ bool Application::initialize(const std::string& simTypeStr, int meshSize) {
     meshWidth = meshSize;
     meshHeight = meshSize;
     
-    // Determinar tipo de simulación
+    //determinar tipo de simulacion
     if (simTypeStr == "cpu") {
         simType = SIM_CPU;
     } else if (simTypeStr == "cuda") {
@@ -31,18 +31,18 @@ bool Application::initialize(const std::string& simTypeStr, int meshSize) {
         return false;
     }
     
-    // Inicializar GLFW
+    //inicializar GLFW
     if (!glfwInit()) {
         std::cerr << "Failed to initialize GLFW" << std::endl;
         return false;
     }
     
-    // Configurar contexto OpenGL
+    //configurar contexto opengl
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
-    // Crear ventana
+    //crear ventana
     std::string title = "Tissue Simulation - " + simTypeStr + " (" + 
                        std::to_string(meshWidth) + "x" + std::to_string(meshHeight) + ")";
     window = glfwCreateWindow(windowWidth, windowHeight, title.c_str(), nullptr, nullptr);
@@ -56,22 +56,22 @@ bool Application::initialize(const std::string& simTypeStr, int meshSize) {
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // VSync
     
-    // Configurar callbacks
+    //configurar callbacks
     glfwSetWindowUserPointer(window, this);
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursorPosCallback);
     glfwSetKeyCallback(window, keyCallback);
     
-    // Inicializar GLEW
+    //inicializar glew
     if (glewInit() != GLEW_OK) {
         std::cerr << "Failed to initialize GLEW" << std::endl;
         return false;
     }
     
-    // Inicializar renderer
+    //inicializar renderer
     renderer.initialize(windowWidth, windowHeight);
     
-    // Inicializar simulación según el tipo
+    //inicializar simulación según el tipo
     tempMesh.initialize(meshWidth, meshHeight, 0.1f);
     
     switch (simType) {
@@ -111,10 +111,10 @@ void Application::run() {
         float deltaTime = static_cast<float>(currentTime - lastTime);
         lastTime = currentTime;
         
-        // Limitar deltaTime para estabilidad
-        if (deltaTime > 0.033f) deltaTime = 0.033f; // Max 30 FPS
+        //limitar deltaTime para estabilidad
+        if (deltaTime > 0.033f) deltaTime = 0.033f; //maximo 30 FPS
         
-        // Actualizar simulación
+        //actualizar simulacionn
         switch (simType) {
             case SIM_CPU:
                 cpuSim->update(deltaTime);
@@ -144,19 +144,19 @@ void Application::run() {
 void Application::handleMouseInput(double xpos, double ypos) {
     if (!mousePressed) return;
     
-    // Convertir coordenadas de pantalla a coordenadas del mundo
+    //convrtir coordenadas de pantalla a coordenadas del mundo
     float normalizedX = (float)xpos / windowWidth;
-    float normalizedY = 1.0f - (float)ypos / windowHeight; // Invertir Y
+    float normalizedY = 1.0f - (float)ypos / windowHeight; //invertir Y
     
     float worldX = normalizedX * (meshWidth - 1) * 0.1f;
     float worldY = normalizedY * (meshHeight - 1) * 0.1f;
     
-    // Calcular fuerza basada en el movimiento del mouse
+    //calcular fuerza basada en el movimiento del mouse
     float deltaX = static_cast<float>(xpos - lastMouseX);
     float deltaY = static_cast<float>(ypos - lastMouseY);
-    float force = -(deltaX + deltaY) * 0.001f; // Fuerza negativa para deformación hacia adentro
+    float force = -(deltaX + deltaY) * 0.001f; //fuerza negativa para deformacion hacia adentro
     
-    // Aplicar fuerza según el tipo de simulación
+    //aplicar fuerza segun el tipo de simulacion
     switch (simType) {
         case SIM_CPU:
             cpuSim->handleMouseInteraction(worldX, worldY, force);
@@ -213,13 +213,13 @@ void Application::printPerformanceStats() {
         std::cout << "Average FPS: " << std::fixed << std::setprecision(1) 
                   << avgFPS << std::endl;
         
-        // Reset counters
+        //reset counters
         frameTimeSum = 0.0;
         frameCount = 0;
     }
 }
 
-// Callbacks estáticos
+//callbacks estáticos
 void Application::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     Application* app = static_cast<Application*>(glfwGetWindowUserPointer(window));
     
@@ -253,7 +253,7 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
                 app->printPerformanceStats();
                 break;
                 
-            // Structural stiffness (Q/A)
+            //structural stiffness (Q/A)
             case GLFW_KEY_Q:
                 g_tissueParams.increaseStructural();
                 paramsChanged = true;
@@ -263,7 +263,7 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
                 paramsChanged = true;
                 break;
                 
-            // Shear stiffness (W/S)  
+            //shear stiffness (W/S)  
             case GLFW_KEY_W:
                 g_tissueParams.increaseShear();
                 paramsChanged = true;
@@ -273,7 +273,7 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
                 paramsChanged = true;
                 break;
                 
-            // Virtual stiffness (E/D)
+            //virtual stiffness (E/D)
             case GLFW_KEY_E:
                 g_tissueParams.increaseVirtual();
                 paramsChanged = true;
@@ -283,7 +283,7 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
                 paramsChanged = true;
                 break;
                 
-            // Damping (R/F)
+            //damping (R/F)
             case GLFW_KEY_R:
                 g_tissueParams.increaseDamping();
                 paramsChanged = true;
@@ -293,18 +293,18 @@ void Application::keyCallback(GLFWwindow* window, int key, int scancode, int act
                 paramsChanged = true;
                 break;
                 
-            // Reset tissue (SPACE)
+            //reset tissue (SPACE)
             case GLFW_KEY_SPACE:
                 app->resetTissue();
                 break;
                 
-            // Reset parameters (BACKSPACE)
+            //reset parameters (BACKSPACE)
             case GLFW_KEY_BACKSPACE:
                 g_tissueParams.reset();
                 paramsChanged = true;
                 break;
                 
-            // Show help (H)
+            //show help (H)
             case GLFW_KEY_H:
                 app->printControls();
                 break;

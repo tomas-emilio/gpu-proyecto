@@ -7,10 +7,10 @@ void PhysicsModel::generateSprings(const Mesh& mesh) {
     int height = mesh.getHeight();
     float spacing = mesh.getSpacing();
     
-    // Usar parámetros globales en lugar de valores hardcodeados
+    //usar parametros globales en lugar de valores hardcodeados
     extern TissueParams g_tissueParams;
     
-    // Resortes estructurales
+    //resortes estructurales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
@@ -29,7 +29,7 @@ void PhysicsModel::generateSprings(const Mesh& mesh) {
         }
     }
     
-    // Resortes de corte
+    //resortes de corte
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < width - 1; ++x) {
             int currentVertex = y * width + x;
@@ -46,7 +46,7 @@ void PhysicsModel::generateSprings(const Mesh& mesh) {
         }
     }
     
-    // Resortes virtuales
+    //resortes virtuales
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             int currentVertex = y * width + x;
@@ -103,14 +103,14 @@ void PhysicsModel::applyConstraints(Mesh& mesh) {
     int width = mesh.getWidth();
     int height = mesh.getHeight();
     
-    // Fijar bordes superior e inferior
+    //fijar bordes superior e inferior
     for (int x = 0; x < width; ++x) {
-        // Borde superior
+        //borde superior
         glm::vec3 topPos = mesh.getVertex(x, 0);
         topPos.z = 0.0f;
         mesh.setVertex(x, 0, topPos);
         
-        // Borde inferior
+        //borde inferior
         glm::vec3 bottomPos = mesh.getVertex(x, height - 1);
         bottomPos.z = 0.0f;
         mesh.setVertex(x, height - 1, bottomPos);
@@ -120,7 +120,7 @@ void PhysicsModel::applyConstraints(Mesh& mesh) {
 void PhysicsModel::updateParams(const TissueParams& params) {
     damping = params.damping;
     
-    // Actualizar rigidez de resortes existentes
+    //actualizar rigidez de resortes existentes
     for (auto& spring : springs) {
         switch (spring.type) {
             case STRUCTURAL:

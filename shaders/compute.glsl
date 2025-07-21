@@ -15,7 +15,7 @@ layout(std430, binding = 2) buffer ForceBuffer {
 };
 
 layout(std430, binding = 3) buffer SpringBuffer {
-    ivec4 springs[]; // vertex1, vertex2, type, padding
+    ivec4 springs[]; //vertex1, vertex2, tipo, padding
 };
 
 layout(std430, binding = 4) buffer SpringDataBuffer {
@@ -27,59 +27,59 @@ uniform int meshWidth;
 uniform int meshHeight;
 uniform float deltaTime;
 uniform float mass;
-uniform int phase; // 0: clear forces, 1: calculate forces, 2: integrate
+uniform int phase; 
 
 void main() {
     uint x = gl_GlobalInvocationID.x;
     uint y = gl_GlobalInvocationID.y;
     uint index = y * meshWidth + x;
     
-    // Verificar límites
+    //verificar limites
     if (x >= meshWidth || y >= meshHeight) {
         return;
     }
     
     if (phase == 0) {
-        // Limpiar fuerzas
+        //limpiar fuerzas
         forces[index] = vec4(0.0, 0.0, 0.0, 0.0);
     }
     else if (phase == 1) {
-        // Calcular fuerzas de resortes
+        //calcular fuerzas de resortes
         vec3 totalForce = vec3(0.0);
         
         for (int i = 0; i < numSprings; ++i) {
             ivec4 spring = springs[i];
             
             if (spring.x == int(index)) {
-                // Este vértice es el primer punto del resorte
+                //este vértice es el primer punto del resorte
                 vec3 pos1 = positions[spring.x].xyz;
                 vec3 pos2 = positions[spring.y].xyz;
                 
                 vec3 diff = pos2 - pos1;
                 float currentLength = length(diff);
                 
-                if (currentLength > 0.001) { // Evitar división por cero
+                if (currentLength > 0.001) { //evitar división por cero
                     vec4 springProps = springData[i];
-                    float displacement = currentLength - springProps.x; // restLength
+                    float displacement = currentLength - springProps.x; //restLength
                     vec3 direction = diff / currentLength;
-                    vec3 springForce = direction * displacement * springProps.y; // stiffness
+                    vec3 springForce = direction * displacement * springProps.y; //stiffness 
                     
                     totalForce += springForce;
                 }
             }
             else if (spring.y == int(index)) {
-                // Este vértice es el segundo punto del resorte
+                //este vertice es el segundo punto del resorte
                 vec3 pos1 = positions[spring.x].xyz;
                 vec3 pos2 = positions[spring.y].xyz;
                 
                 vec3 diff = pos2 - pos1;
                 float currentLength = length(diff);
                 
-                if (currentLength > 0.001) { // Evitar división por cero
+                if (currentLength > 0.001) { //evitar division por cero
                     vec4 springProps = springData[i];
-                    float displacement = currentLength - springProps.x; // restLength
+                    float displacement = currentLength - springProps.x; //restLength
                     vec3 direction = diff / currentLength;
-                    vec3 springForce = direction * displacement * springProps.y; // stiffness
+                    vec3 springForce = direction * displacement * springProps.y; //stiffness
                     
                     totalForce -= springForce;
                 }
@@ -89,24 +89,24 @@ void main() {
         forces[index] = vec4(totalForce, 0.0);
     }
     else if (phase == 2) {
-        // Integración de Verlet
+        //integración de Verlet
         vec3 currentPos = positions[index].xyz;
         vec3 oldPos = oldPositions[index].xyz;
         vec3 force = forces[index].xyz;
         
-        // Calcular aceleración
+        //calcular aceleración
         vec3 acceleration = force / mass;
         
         float dt2 = deltaTime * deltaTime;
         
-        // Integración de Verlet: x(t+dt) = 2*x(t) - x(t-dt) + a(t)*dt^2
+        //integración de Verlet: x(t+dt) = 2*x(t) - x(t-dt) + a(t)*dt^2
         vec3 newPos = 2.0 * currentPos - oldPos + acceleration * dt2;
         
-        // Actualizar posiciones
+        //actualizar posiciones
         oldPositions[index] = vec4(currentPos, 1.0);
         positions[index] = vec4(newPos, 1.0);
         
-        // Aplicar restricciones (fijar bordes superior e inferior)
+        //aplicar restricciones (fijar bordes superior e inferior)
         if (y == 0 || y == (meshHeight - 1)) {
             positions[index].z = 0.0;
         }

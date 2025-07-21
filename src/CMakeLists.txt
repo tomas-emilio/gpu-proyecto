@@ -1,6 +1,4 @@
-# ======================================
-# Archivos fuente
-# ======================================
+#archivos fuente
 set(CORE_SOURCES
     core/mesh.cpp
     core/physics.cpp
@@ -26,9 +24,7 @@ set(APPLICATION_SRC
     application.cpp
 )
 
-# ======================================
-# Ejecutable
-# ======================================
+#ejecutable
 add_executable(simulacion
     ${CORE_SOURCES}
     ${CPU_SOURCES}
@@ -38,17 +34,13 @@ add_executable(simulacion
     main.cpp
 )
 
-# ======================================
-# Propiedades CUDA
-# ======================================
+#propiedades cuda
 set_target_properties(simulacion PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_ARCHITECTURES "native"
 )
 
-# ======================================
-# Includes
-# ======================================
+#includes
 target_include_directories(simulacion PRIVATE
     ${PROJECT_SOURCE_DIR}/include
     ${PROJECT_SOURCE_DIR}/include/core
@@ -57,9 +49,7 @@ target_include_directories(simulacion PRIVATE
     ${PROJECT_SOURCE_DIR}/include/opengl
 )
 
-# ======================================
-# Linkeo OpenGL, GLEW y GLFW
-# ======================================
+#linkeo opengl, glew y glfw
 find_package(OpenGL REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glfw3 REQUIRED)
@@ -70,9 +60,7 @@ target_link_libraries(simulacion
     glfw
 )
 
-# ==================================
-# Configuración de shaders
-# ==================================
+#configuracion de shaders
 file(GLOB SHADERS "${PROJECT_SOURCE_DIR}/shaders/*.glsl")
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders)
 foreach(shader ${SHADERS})

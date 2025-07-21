@@ -2,7 +2,7 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-// Kernel para limpiar fuerzas
+//kernel para limpiar fuerzas
 __global__ void clearForces(float3* forces, int numVertices) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < numVertices) {
@@ -10,7 +10,7 @@ __global__ void clearForces(float3* forces, int numVertices) {
     }
 }
 
-// Kernel para calcular fuerzas de resortes
+//kernel para calcular fuerzas de resortes
 __global__ void calculateForces(float3* positions, float3* forces, 
                                CudaSpring* springs, int numSprings) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -34,7 +34,7 @@ __global__ void calculateForces(float3* positions, float3* forces,
                                            direction.y * displacement * spring.stiffness,
                                            direction.z * displacement * spring.stiffness);
             
-            // Usar atomic operations para evitar race conditions
+            //usar atomic operations para evitar race conditions
             atomicAdd(&forces[spring.vertex1].x, springForce.x);
             atomicAdd(&forces[spring.vertex1].y, springForce.y);
             atomicAdd(&forces[spring.vertex1].z, springForce.z);
@@ -46,7 +46,7 @@ __global__ void calculateForces(float3* positions, float3* forces,
     }
 }
 
-// Kernel para integración Verlet
+//kernel para integracion verlet
 __global__ void verletIntegration(float3* positions, float3* oldPositions,
                                  float3* forces, float deltaTime, int numVertices,
                                  float mass) {
@@ -57,25 +57,25 @@ __global__ void verletIntegration(float3* positions, float3* oldPositions,
         float3 oldPos = oldPositions[idx];
         float3 force = forces[idx];
         
-        // Calcular aceleración
+        //calcular aceleracion
         float3 acceleration = make_float3(force.x / mass, force.y / mass, force.z / mass);
         
         float dt2 = deltaTime * deltaTime;
         
-        // Integración de Verlet: x(t+dt) = 2*x(t) - x(t-dt) + a(t)*dt^2
+        //integración de verlet: x(t+dt) = 2*x(t) - x(t-dt) + a(t)*dt^2
         float3 newPos = make_float3(
             2.0f * currentPos.x - oldPos.x + acceleration.x * dt2,
             2.0f * currentPos.y - oldPos.y + acceleration.y * dt2,
             2.0f * currentPos.z - oldPos.z + acceleration.z * dt2
         );
         
-        // Actualizar posiciones
+        //actualizar posiciones
         oldPositions[idx] = currentPos;
         positions[idx] = newPos;
     }
 }
 
-// Kernel para aplicar restricciones
+//kernel para aplicar restricciones
 __global__ void applyConstraints(float3* positions, int width, int height) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     
@@ -83,14 +83,14 @@ __global__ void applyConstraints(float3* positions, int width, int height) {
         int x = idx % width;
         int y = idx / width;
         
-        // Fijar bordes superior e inferior
+        //fijar bordes superior e inferior
         if (y == 0 || y == height - 1) {
             positions[idx].z = 0.0f;
         }
     }
 }
 
-// Kernel para aplicar fuerza del usuario
+//kernel para aplicar fuerza del usuario
 __global__ void applyUserForce(float3* positions, int targetVertex, float3 force) {
     if (blockIdx.x == 0 && threadIdx.x == 0 && targetVertex >= 0) {
         positions[targetVertex].x += force.x;

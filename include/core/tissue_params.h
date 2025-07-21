@@ -2,11 +2,11 @@
 #include <iostream>
 
 struct TissueParams {
-    float structuralStiffness = 50.0f;  // Rigidez resortes estructurales
-    float shearStiffness = 25.0f;       // Rigidez resortes de corte
-    float virtualStiffness = 15.0f;     // Rigidez resortes virtuales
-    float damping = 0.98f;              // Factor de amortiguación
-    float mass = 1.0f;                  // Masa de cada punto
+    float structuralStiffness = 50.0f;  //rigidez resortes estructurales
+    float shearStiffness = 25.0f;       //rigidez resortes de corte
+    float virtualStiffness = 15.0f;     //rigidez resortes virtuales
+    float damping = 0.98f;              //factor de amortiguación
+    float mass = 1.0f;                  //masa de cada punto
     
     void increaseStructural() { structuralStiffness += 5.0f; }
     void decreaseStructural() { structuralStiffness = std::max(1.0f, structuralStiffness - 5.0f); }
@@ -38,5 +38,5 @@ struct TissueParams {
     }
 };
 
-// Singleton global para parámetros
+//singleton global para parámetros
 extern TissueParams g_tissueParams;

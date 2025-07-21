@@ -9,7 +9,7 @@ void Mesh::initialize(int w, int h, float s) {
     oldVertices.clear();
     indices.clear();
     
-    // Crear vértices
+    //crear vertices
     for (int y = 0; y < height; ++y) {
         for (int x = 0; x < width; ++x) {
             float posX = x * spacing;
@@ -20,7 +20,7 @@ void Mesh::initialize(int w, int h, float s) {
         }
     }
     
-    // Crear índices para triángulos
+    //crear indices para triangulos
     for (int y = 0; y < height - 1; ++y) {
         for (int x = 0; x < width - 1; ++x) {
             int topLeft = y * width + x;
@@ -28,12 +28,12 @@ void Mesh::initialize(int w, int h, float s) {
             int bottomLeft = (y + 1) * width + x;
             int bottomRight = (y + 1) * width + (x + 1);
             
-            // Triángulo 1
+            //triangulo 1
             indices.push_back(topLeft);
             indices.push_back(bottomLeft);
             indices.push_back(topRight);
             
-            // Triángulo 2
+            //triangulo 2
             indices.push_back(topRight);
             indices.push_back(bottomLeft);
             indices.push_back(bottomRight);
